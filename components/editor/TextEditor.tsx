@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAnalysisStore } from "@/lib/store/useAnalysisStore";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowRight } from "lucide-react";
 
 // Helper function to generate UUID
@@ -17,6 +17,14 @@ export function TextEditor() {
   const [input, setInput] = useState("");
   const { currentAnalysis, setCurrentAnalysis, addToHistory } = useAnalysisStore();
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (currentAnalysis) {
+      setInput(currentAnalysis.text);
+    } else {
+      setInput("");  // Clear input when there's no current analysis
+    }
+  }, [currentAnalysis]);
 
   const handleAnalyze = async () => {
     if (!input.trim() || isLoading) return;

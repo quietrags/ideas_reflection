@@ -177,52 +177,16 @@ async def analyze_text(input_data: TextInput, background_tasks: BackgroundTasks)
                 }
             }
 
-            # Log the structured response with detailed sections
-            logger.info("\n" + "="*50)
-            logger.info("PARSED OUTPUT STRUCTURE:")
-            logger.info("="*50)
+            print("\n================================================================================")
+            print("LLM RESPONSE:")
+            print("================================================================================")
+            print(response_text)
             
-            logger.info("\n1. CORE IDEAS:")
-            logger.info("-"*30)
-            logger.info("\nMAIN IDEAS:")
-            for item in structured_response["core_ideas"]["main_ideas"]:
-                logger.info(f"  • [{item['id']}] {item['content']}")
-            
-            logger.info("\nSUPPORTING IDEAS:")
-            for item in structured_response["core_ideas"]["supporting_ideas"]:
-                logger.info(f"  • [For {item['main_idea_id']}] {item['content']}")
-            
-            logger.info("\nCONTEXTUAL ELEMENTS:")
-            for item in structured_response["core_ideas"]["contextual_elements"]:
-                logger.info(f"  • [{item['id']}] {item['content']}")
-            
-            logger.info("\nCOUNTERPOINTS:")
-            for item in structured_response["core_ideas"]["counterpoints"]:
-                logger.info(f"  • [For {item['main_idea_id']}] {item['content']}")
-            
-            logger.info("\nRELATIONSHIPS BETWEEN MAIN IDEAS:")
-            for item in structured_response["core_ideas"]["relationships_between_main_ideas"]:
-                logger.info(f"  • {item['idea1']} {item['type']} {item['idea2']}: {item['description']}")
-            
-            logger.info("\n2. RELATIONSHIPS:")
-            logger.info("-"*30)
-            for item in structured_response["relationships"]["items"]:
-                logger.info(f"  • [{item['type']}] {item['description']}")
-            
-            logger.info("\n3. ANALOGIES:")
-            logger.info("-"*30)
-            for item in structured_response["analogies"]["items"]:
-                logger.info(f"  • [{item['id']}]")
-                logger.info(f"    Comparison: {item['comparison']}")
-                logger.info(f"    Support: {item['support']}")
-                logger.info(f"    Implications: {item['implications']}")
-            
-            logger.info("\n4. INSIGHTS:")
-            logger.info("-"*30)
-            logger.info(f"\nEvolution: {structured_response['insights']['evolution']}")
-            logger.info(f"\nKey Takeaways: {structured_response['insights']['key_takeaways']}")
-            logger.info(f"\nTradeoffs: {structured_response['insights']['tradeoffs']}")
-            logger.info(f"\nBroader Themes: {structured_response['insights']['broader_themes']}")
+            print("\n================================================================================")
+            print("PARSED OUTPUT SENT TO FRONTEND:")
+            print("================================================================================")
+            print(json.dumps(structured_response, indent=2))
+            print("================================================================================\n")
             
             return AnalysisResponse(analysis=structured_response)
             
