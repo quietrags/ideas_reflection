@@ -1,0 +1,329 @@
+I'll help you design this application with a clear structure and user experience. Let's break it down into different aspects:
+
+Frontend Layout & Components:
+
+1. Main Layout:
+   - A split-pane design with a resizable divider
+   - Left panel takes ~40% width, right panel ~60% by default
+   - Both panels should be full-height and scrollable independently
+
+2. Left Panel (Input):
+   - A shadcn Textarea component with:
+     - Auto-expanding height
+     - Line numbers
+     - Syntax highlighting (optional)
+   - "Analyze" button below the textarea
+   - History tabs/dropdown above the textarea showing previously analyzed texts
+   - Loading state indicator when analysis is in progress
+
+3. Right Panel (Results):
+   - Four collapsible sections using shadcn Accordion
+   - Each section should have:
+     - A clear header with an icon indicating state (expanded/collapsed)
+     - A preview of content when collapsed
+     - Full content when expanded
+   - Progress indicator for results loading
+   - "Copy section" button for each section
+   - "Copy all" button at the top
+
+Data Flow:
+
+1. State Management:
+   - Store multiple text entries with their corresponding analyses
+   - Each entry should have:
+     - Unique ID
+     - Input text
+     - Timestamp
+     - Analysis results (4 sections)
+     - Status (analyzed/pending/error)
+
+2. API Integration:
+   - FastAPI endpoint for analysis (/api/analyze)
+   - Structured response format:
+     ```typescript
+     interface AnalysisResponse {
+       section1: { title: string, content: string }
+       section2: { title: string, content: string }
+       section3: { title: string, content: string }
+       section4: { title: string, content: string }
+       metadata: { 
+         processingTime: number
+         timestamp: string 
+       }
+     }
+     ```
+
+User Experience Features:
+
+1. Navigation:
+   - Keyboard shortcuts for common actions
+   - Clear visual indication of which text/analysis pair is currently active
+   - Smooth transitions between different analyses
+
+2. Persistence:
+   - Save analyses to local storage
+   - Option to export/import analysis history
+   - Session management for returning users
+
+3. Error Handling:
+   - Graceful handling of API failures
+   - Retry mechanism for failed analyses
+   - Clear error messages with suggested actions
+
+4. Responsive Design:
+   - Stack panels vertically on mobile
+   - Collapsible sidebar for history on mobile
+   - Touch-friendly interactions for mobile users
+
+Would you like me to elaborate on any of these aspects or discuss additional features that could enhance the application?
+
+
+Let's enhance the design with a sophisticated monochromatic color scheme and interactive text highlighting features:
+
+Color Theme:
+- Primary Background: Dark slate (#0f172a)
+- Secondary Background: Slightly lighter slate (#1e293b)
+- Active/Hover Elements: Rich grey (#334155)
+- Text: 
+  - Primary: Pure white (#ffffff)
+  - Secondary: Soft grey (#94a3b8)
+  - Muted: Deep grey (#475569)
+- Accents:
+  - Primary: Electric white (#f8fafc)
+  - Secondary: Cool grey (#64748b)
+
+Enhanced Interface Elements:
+
+1. Left Panel (Text Editor):
+   - Dark background (#0f172a) with white text
+   - Subtle line numbers in muted grey
+   - Interactive highlighting features:
+     - Hover-activated word highlighting
+     - Color-coded text selections that correspond to right panel sections
+     - Highlight colors (all semi-transparent):
+       - Section 1: Cool blue (#60a5fa50)
+       - Section 2: Sage green (#4ade8050)
+       - Section 3: Warm amber (#fbbf2450)
+       - Section 4: Soft purple (#a78bfa50)
+   - Floating action button for analysis (white with dark icon)
+
+2. Right Panel (Analysis):
+   - Slightly lighter background (#1e293b)
+   - Accordion sections with:
+     - Elegant divider lines (#334155)
+     - Smooth expansion/collapse animations
+     - Section headers with matching highlight colors
+   - Interactive Features:
+     - When hovering over analysis in a section, corresponding text in left panel gets highlighted
+     - Color-coded vertical bars on the left of each section
+     - Expandable/collapsible sections with smooth animations
+
+3. Interactive Elements:
+   - Navigation bar at top:
+     - Clean monochrome gradient background
+     - White icons and text
+     - Active state indicators in accent color
+   - Divider between panels:
+     - Thin line in muted grey (#475569)
+     - Draggable handle with subtle hover effect
+   - Buttons and Controls:
+     - Ghost style buttons with white borders
+     - Hover effects: Subtle white glow
+     - Active states: Filled white with dark text
+
+4. Typography:
+   - Headers: Inter font, medium weight
+   - Body: SF Mono or JetBrains Mono for code-like feel
+   - Size hierarchy:
+     - Main headers: 1.5rem
+     - Section headers: 1.25rem
+     - Body text: 1rem
+     - Meta information: 0.875rem
+
+5. Interactive Highlighting System:
+   - When clicking a section in the right panel:
+     - Relevant text in left panel gets highlighted
+     - Smooth transition effect for highlight
+     - Other text slightly dims (opacity: 0.7)
+   - Multiple highlight modes:
+     - Full paragraph highlight
+     - Sentence-level highlight
+     - Word-level highlight
+     - Each mode toggleable via small icon buttons
+
+6. Responsive Behaviors:
+   - Smooth transitions for panel resizing
+   - Collapsible panels with edge indicators
+   - Mobile-optimized stacked view
+   - Touch-friendly highlight controls
+
+# Product Requirements Document: Text Analysis Interface (TAI)
+
+## Product Overview
+Text Analysis Interface (TAI) is a web-based application that enables users to analyze text through an LLM-powered system, providing synchronized, interactive viewing of both input text and analysis results. The application features a sophisticated highlighting system that creates visual connections between text elements and their corresponding analyses.
+
+## User Problems Solved
+1. Difficulty in correlating specific analysis points with source text
+2. Need for organized, sectioned analysis of complex texts
+3. Requirement for persistent and navigable analysis history
+4. Need for visual clarity in text-analysis relationships
+
+## Core Features
+
+### 1. Dual-Panel Interface
+#### Requirements:
+- **Split View**
+  - Resizable panels (40/60 default split)
+  - Draggable divider with visual feedback
+  - Panel state persistence across sessions
+  - Keyboard shortcuts for panel manipulation
+
+- **Left Panel (Text Input)**
+  - Multi-line text editor with line numbers
+  - Syntax highlighting capability
+  - Auto-expanding height
+  - Text persistence across sessions
+  - Character/word count display
+
+- **Right Panel (Analysis)**
+  - Four collapsible accordion sections
+  - Section-specific color coding
+  - Progress indicators during analysis
+  - Copy functionality (per section and full analysis)
+
+### 2. Interactive Highlighting System
+#### Requirements:
+- **Bidirectional Highlighting**
+  - Color-coded highlighting system for four analysis sections
+  - Highlight activation from either panel
+  - Multiple highlight modes (paragraph, sentence, word)
+  - Highlight persistence option
+
+- **Color Scheme**
+  - Semi-transparent highlights for readability
+  - Section-specific colors with consistent application
+  - Contrast ratio compliance for accessibility
+  - Dark/light theme support
+
+### 3. Analysis Management
+#### Requirements:
+- **Analysis Processing**
+  - FastAPI integration for LLM analysis
+  - Real-time analysis status updates
+  - Error handling with user feedback
+  - Retry mechanisms for failed analyses
+
+- **History Management**
+  - Local storage for analysis history
+  - Export/import functionality
+  - Session management
+  - History search and filtering
+
+## Technical Requirements
+
+### Frontend
+- Next.js application with TypeScript
+- shadcn/ui component library
+- Tailwind CSS for styling
+- State management solution (e.g., Zustand/Jotai)
+
+### Backend
+- FastAPI server
+- LLM integration
+- Response time < 3 seconds for standard analysis
+- Error rate < 1%
+
+### API Contract
+```typescript
+interface AnalysisRequest {
+  text: string;
+  options?: {
+    mode: 'detailed' | 'summary';
+    focusAreas?: string[];
+  };
+}
+
+interface AnalysisResponse {
+  sections: {
+    id: string;
+    title: string;
+    content: string;
+    highlights: Array<{
+      type: 'paragraph' | 'sentence' | 'word';
+      positions: Array<[number, number]>;
+    }>;
+  }[];
+  metadata: {
+    processingTime: number;
+    timestamp: string;
+    status: 'success' | 'partial' | 'error';
+  };
+}
+```
+
+## Performance Requirements
+- Initial page load < 2 seconds
+- Panel resize response < 16ms
+- Highlight activation < 50ms
+- Analysis history load < 1 second
+- Mobile response time parity with desktop
+
+## Accessibility Requirements
+- WCAG 2.1 AA compliance
+- Keyboard navigation support
+- Screen reader compatibility
+- Minimum contrast ratio 4.5:1
+- Focus indicators for all interactive elements
+
+## Analytics Requirements
+Track:
+- Analysis completion rates
+- Feature usage patterns
+- Error rates and types
+- Session duration and frequency
+- Panel resize patterns
+- Highlight usage patterns
+
+## Success Metrics
+1. User Engagement
+   - Average session duration > 10 minutes
+   - Return user rate > 40%
+   - Analysis completion rate > 90%
+
+2. Performance
+   - 99% uptime
+   - Average server response < 3 seconds
+   - Client-side performance metrics within budget
+
+3. User Satisfaction
+   - Feature adoption rate > 60%
+   - User satisfaction score > 4.2/5
+   - Support ticket rate < 2%
+
+## Future Considerations
+1. Collaborative features
+2. Advanced highlighting patterns
+3. Custom analysis templates
+4. API access for enterprise users
+5. Integration with document management systems
+
+## Release Planning
+### Phase 1 (MVP)
+- Basic dual-panel interface
+- Text analysis with four sections
+- Simple highlighting system
+- Local storage for history
+
+### Phase 2
+- Enhanced highlighting system
+- User accounts
+- Analysis export/import
+- Advanced error handling
+
+### Phase 3
+- Collaborative features
+- Advanced analytics
+- API access
+- Custom templates
+
+Would you like me to elaborate on any specific aspect of this PRD?
