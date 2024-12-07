@@ -1,338 +1,214 @@
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { useAnalysisStore } from "@/lib/store/useAnalysisStore";
-import { Button } from "@/components/ui/button";
-import { Copy, Loader2, AlignLeft, Edit2, Save } from "lucide-react";
-import { useState, useCallback, useEffect } from "react";
-import { Textarea } from "@/components/ui/textarea";
-import _ from "lodash";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { CopyIcon, CheckIcon } from "lucide-react";
+import { useState } from "react";
 
-export function AnalysisPanel() {
-  const { currentAnalysis, updateAnalysis } = useAnalysisStore();
-  const [editingSection, setEditingSection] = useState<string | null>(null);
-  const [editContent, setEditContent] = useState("");
+export default function AnalysisPanel() {
+  const { currentAnalysis } = useAnalysisStore();
+  const [copiedSection, setCopiedSection] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (currentAnalysis?.sections) {
-      // Server-side logging
-      console.log('\n=== ANALYSIS PANEL DATA ===');
-      console.log('Full Analysis Object:', JSON.stringify(currentAnalysis, null, 2));
-      console.log('\n=== SECTIONS BREAKDOWN ===');
-      console.log('Core Ideas:', JSON.stringify(currentAnalysis.sections?.core_ideas, null, 2));
-      console.log('Relationships Between Main Ideas:', JSON.stringify(currentAnalysis.sections?.relationships_between_main_ideas, null, 2));
-      console.log('Relationships:', JSON.stringify(currentAnalysis.sections?.relationships, null, 2));
-      console.log('Analogies:', JSON.stringify(currentAnalysis.sections?.analogies, null, 2));
-      console.log('Updated Insights:', JSON.stringify(currentAnalysis.sections?.insights, null, 2));
-      console.log('\n=== END ANALYSIS PANEL DATA ===\n');
-    }
-  }, [currentAnalysis]);
+  const handleCopy = async (text: string, sectionId: string) => {
+    await navigator.clipboard.writeText(text);
+    setCopiedSection(sectionId);
+    setTimeout(() => setCopiedSection(null), 2000);
+  };
 
-  // Debounced save function
-  const debouncedSave = useCallback(
-    _.debounce((id: string, updates: any) => {
-      updateAnalysis(id, updates);
-    }, 1000),
-    []
+  const renderEmptyState = () => (
+    <div className="flex h-full flex-col items-center justify-center text-center p-8">
+      <div className="rounded-full bg-blue-50 p-3 mb-4">
+        <svg
+          className="h-6 w-6 text-blue-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+          />
+        </svg>
+      </div>
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        Ready to Analyze Your Ideas
+      </h3>
+      <p className="text-gray-500 max-w-sm">
+        Enter your text in the editor and click "Analyze" to get detailed insights about the ideas and their relationships.
+      </p>
+    </div>
   );
 
-  const handleEdit = (sectionId: string, content: string) => {
-    setEditingSection(sectionId);
-    setEditContent(content);
-  };
+  const renderLoadingState = () => (
+    <div className="flex h-full flex-col items-center justify-center p-8">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+      <p className="text-gray-600">Analyzing your ideas...</p>
+    </div>
+  );
 
-  const handleSave = (sectionId: string) => {
-    if (!currentAnalysis) return;
-    
-    const [mainSection, subSection] = sectionId.split('.');
-    const updates = {
-      sections: {
-        ...currentAnalysis.sections,
-        [mainSection]: {
-          ...currentAnalysis.sections[mainSection],
-          [subSection]: editContent,
-        },
-      },
-    };
-    
-    updateAnalysis(currentAnalysis.id, updates);
-    setEditingSection(null);
-  };
-
-  const handleContentChange = (content: string) => {
-    setEditContent(content);
-    if (currentAnalysis && editingSection) {
-      const [mainSection, subSection] = editingSection.split('.');
-      const updates = {
-        sections: {
-          ...currentAnalysis.sections,
-          [mainSection]: {
-            ...currentAnalysis.sections[mainSection],
-            [subSection]: content,
-          },
-        },
-      };
-      debouncedSave(currentAnalysis.id, updates);
-    }
-  };
-
-  if (!currentAnalysis) {
-    return (
-      <div className="flex h-full w-full items-center justify-center">
-        <div className="text-center">
-          <AlignLeft className="mx-auto h-8 w-8 text-gray-300" />
-          <p className="mt-2 text-sm text-gray-400">
-            Enter text and click Analyze<br />to get started
-          </p>
-        </div>
+  const renderErrorState = (error: string) => (
+    <div className="flex h-full flex-col items-center justify-center text-center p-8">
+      <div className="rounded-full bg-red-50 p-3 mb-4">
+        <svg
+          className="h-6 w-6 text-red-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+          />
+        </svg>
       </div>
-    );
-  }
+      <h3 className="text-lg font-semibold text-red-900 mb-2">Analysis Failed</h3>
+      <p className="text-gray-500">{error}</p>
+    </div>
+  );
 
-  if (currentAnalysis.status === "loading") {
-    return (
-      <div className="flex h-full w-full items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="mx-auto h-8 w-8 animate-spin text-gray-900" />
-          <p className="mt-2 text-sm text-gray-400">Analyzing your ideas...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (currentAnalysis.status === "error") {
-    return (
-      <div className="flex h-full w-full items-center justify-center">
-        <p className="text-center text-sm text-red-500">
-          {currentAnalysis.error || "An error occurred during analysis"}
-        </p>
-      </div>
-    );
-  }
-
-  const copySection = async (content: string) => {
-    try {
-      await navigator.clipboard.writeText(content);
-    } catch (err) {
-      console.error("Failed to copy text:", err);
-    }
-  };
-
-  const renderEditableContent = (sectionId: string, content: string) => {
-    const isEditing = editingSection === sectionId;
-    
-    return (
-      <div className="relative">
-        {isEditing ? (
-          <div className="space-y-2">
-            <Textarea
-              value={editContent}
-              onChange={(e) => handleContentChange(e.target.value)}
-              className="min-h-[100px] w-full"
-            />
-            <div className="flex justify-end space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setEditingSection(null)}
-              >
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => handleSave(sectionId)}
-              >
-                <Save className="mr-2 h-4 w-4" />
-                Save
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="group relative">
-            <div className="whitespace-pre-wrap text-gray-900">{content}</div>
-            <div className="absolute right-0 top-0 hidden space-x-2 group-hover:flex">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleEdit(sectionId, content)}
-              >
-                <Edit2 className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => copySection(content)}
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  console.log("Current Analysis:", currentAnalysis);
-  console.log("Core Ideas:", currentAnalysis.sections?.core_ideas);
-  console.log("Relationships Between Main Ideas:", currentAnalysis.sections?.relationships_between_main_ideas);
-  console.log("Relationships:", currentAnalysis.sections?.relationships);
-  console.log("Analogies:", currentAnalysis.sections?.analogies);
-  console.log("Updated Insights:", currentAnalysis.sections?.insights);
-
-  const sections = [
-    {
-      id: "core-ideas",
-      title: "Core Ideas",
-      subsections: [
-        { 
-          title: "Main Ideas", 
-          data: currentAnalysis?.sections?.core_ideas?.main_ideas || [],
-          renderItem: (item: any) => renderEditableContent(
-            "CoreIdeas.MainIdeas",
-            `[${item.id}] ${item.content}`
-          )
-        },
-        { 
-          title: "Supporting Ideas", 
-          data: currentAnalysis?.sections?.core_ideas?.supporting_ideas || [],
-          renderItem: (item: any) => renderEditableContent(
-            "CoreIdeas.SupportingIdeas",
-            `[For ${item.main_idea_id}] ${item.content}`
-          )
-        },
-        { 
-          title: "Contextual Elements", 
-          data: currentAnalysis?.sections?.core_ideas?.contextual_elements || [],
-          renderItem: (item: any) => renderEditableContent(
-            "CoreIdeas.ContextualElements",
-            `[${item.id}] ${item.content}`
-          )
-        },
-        { 
-          title: "Counterpoints", 
-          data: currentAnalysis?.sections?.core_ideas?.counterpoints || [],
-          renderItem: (item: any) => renderEditableContent(
-            "CoreIdeas.Counterpoints",
-            `[For ${item.main_idea_id}] ${item.content}`
-          )
-        },
-        {
-          title: "Relationships Between Ideas",
-          data: currentAnalysis?.sections?.core_ideas?.relationships_between_main_ideas || [],
-          renderItem: (item: any) => renderEditableContent(
-            "CoreIdeas.RelationshipsBetweenMainIdeas",
-            `[${item.type}] ${item.idea1} → ${item.idea2}: ${item.description}`
-          )
-        }
-      ],
-    },
-    {
-      id: "relationships",
-      title: "General Relationships",
-      data: currentAnalysis?.sections?.relationships?.items || [],
-      renderItem: (item: any) => renderEditableContent(
-        "Relationships",
-        `[${item.type}] ${item.description}`
-      )
-    },
-    {
-      id: "analogies",
-      title: "Analogies",
-      data: currentAnalysis?.sections?.analogies?.items || [],
-      renderItem: (item: any) => renderEditableContent(
-        "Analogies",
-        `[${item.id}] ${item.comparison}\nSupport: ${item.support}\nImplications: ${item.implications}`
-      )
-    },
-    {
-      id: "insights",
-      title: "Generated Insights",
-      subsections: [
-        {
-          title: "Evolution of Ideas",
-          data: currentAnalysis?.sections?.insights?.evolution ? [currentAnalysis.sections.insights.evolution] : [],
-          renderItem: (item: any) => renderEditableContent("Insights.Evolution", item)
-        },
-        {
-          title: "Key Takeaways",
-          data: currentAnalysis?.sections?.insights?.key_takeaways ? [currentAnalysis.sections.insights.key_takeaways] : [],
-          renderItem: (item: any) => renderEditableContent("Insights.KeyTakeaways", item)
-        },
-        {
-          title: "Tradeoffs/Risks",
-          data: currentAnalysis?.sections?.insights?.tradeoffs ? [currentAnalysis.sections.insights.tradeoffs] : [],
-          renderItem: (item: any) => renderEditableContent("Insights.Tradeoffs", item)
-        },
-        {
-          title: "Broader Themes",
-          data: currentAnalysis?.sections?.insights?.broader_themes ? [currentAnalysis.sections.insights.broader_themes] : [],
-          renderItem: (item: any) => renderEditableContent("Insights.BroaderThemes", item)
-        }
-      ]
-    }
-  ];
+  const renderCopyButton = (text: string, sectionId: string) => (
+    <button
+      onClick={(e) => {
+        e.stopPropagation(); // Prevent accordion from toggling
+        handleCopy(text, sectionId);
+      }}
+      className="ml-2 p-1 hover:bg-gray-100 rounded transition-colors"
+      title="Copy to clipboard"
+    >
+      {copiedSection === sectionId ? (
+        <CheckIcon className="h-4 w-4 text-green-500" />
+      ) : (
+        <CopyIcon className="h-4 w-4 text-gray-400" />
+      )}
+    </button>
+  );
 
   return (
-    <div className="flex h-full w-full flex-col gap-4 bg-white">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Idea Analysis</h2>
-          <p className="text-sm text-gray-500">Here's what we found in your text.</p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="bg-white text-gray-700 hover:bg-gray-50 hover:text-gray-900"
-          onClick={() => copySection(currentAnalysis.sections?.raw_analysis || "")}
-        >
-          <Copy className="mr-2 h-4 w-4" />
-          Copy All
-        </Button>
+    <div className="h-full flex flex-col">
+      <div className="px-4 py-3 border-b border-gray-200 bg-white">
+        <h2 className="text-lg font-semibold text-gray-900">Analysis Results</h2>
+        <p className="text-sm text-gray-500">Explore the structured breakdown of your ideas</p>
       </div>
+      <div className="flex-1 overflow-y-auto">
+        {!currentAnalysis && renderEmptyState()}
+        {currentAnalysis?.status === "loading" && renderLoadingState()}
+        {currentAnalysis?.status === "error" && renderErrorState(currentAnalysis.error || "An unexpected error occurred")}
+        {currentAnalysis?.status === "success" && currentAnalysis.sections && (
+          <div className="p-4">
+            <Accordion type="single" collapsible className="space-y-4">
+              <AccordionItem value="context" className="border rounded-lg overflow-hidden bg-white">
+                <AccordionTrigger className="px-4 hover:no-underline data-[state=open]:bg-gray-50">
+                  <div className="flex items-center justify-between w-full text-gray-900">
+                    <span className="font-semibold">The broad context of the article</span>
+                    {renderCopyButton(currentAnalysis.sections.broader_context, "context")}
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4 pt-2">
+                  <p className="text-sm text-gray-700">{currentAnalysis.sections.broader_context}</p>
+                </AccordionContent>
+              </AccordionItem>
 
-      <div className="flex-1 overflow-auto">
-        <Accordion type="single" collapsible className="space-y-2">
-          {sections.map((section) => (
-            <AccordionItem
-              key={section.id}
-              value={section.id}
-              className="rounded-lg border border-gray-200 bg-white px-4"
-            >
-              <AccordionTrigger className="text-sm font-semibold text-gray-900 hover:text-gray-700 [&[data-state=open]]:text-gray-900">
-                {section.title}
-              </AccordionTrigger>
-              <AccordionContent>
-                <div className="space-y-4">
-                  {section.subsections ? (
-                    section.subsections.map((subsection) => (
-                      <div key={subsection.title} className="space-y-2">
-                        <h4 className="font-medium text-gray-700">{subsection.title}</h4>
-                        <div className="space-y-3">
-                          {subsection.data.map((item: any, index: number) => (
-                            <div key={index} className="rounded-lg bg-gray-50 p-3">
-                              {subsection.renderItem(item)}
-                            </div>
-                          ))}
-                        </div>
+              <AccordionItem value="claims" className="border rounded-lg overflow-hidden bg-white">
+                <AccordionTrigger className="px-4 hover:no-underline data-[state=open]:bg-gray-50">
+                  <div className="flex items-center justify-between w-full text-gray-900">
+                    <span className="font-semibold">Important claims being made</span>
+                    {renderCopyButton(JSON.stringify(currentAnalysis.sections.claims, null, 2), "claims")}
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4 pt-2">
+                  <div className="space-y-4">
+                    {Array.isArray(currentAnalysis.sections.claims) && currentAnalysis.sections.claims.map((claim, index) => (
+                      <div key={index} className="bg-gray-50 p-3 rounded">
+                        <p className="text-sm text-gray-700">{claim.text}</p>
                       </div>
-                    ))
-                  ) : (
-                    <div className="space-y-3">
-                      {Array.isArray(section.data) && section.data.map((item: any, index: number) => (
-                        <div key={index} className="rounded-lg bg-gray-50 p-3">
-                          {section.renderItem(item)}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="evidence" className="border rounded-lg overflow-hidden bg-white">
+                <AccordionTrigger className="px-4 hover:no-underline data-[state=open]:bg-gray-50">
+                  <div className="flex items-center justify-between w-full text-gray-900">
+                    <span className="font-semibold">What evidence is being presented for the claims</span>
+                    {renderCopyButton(JSON.stringify(currentAnalysis.sections.evidence_and_support, null, 2), "evidence")}
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4 pt-2">
+                  <div className="space-y-4">
+                    {Array.isArray(currentAnalysis.sections.evidence_and_support) && currentAnalysis.sections.evidence_and_support.map((evidence, index) => (
+                      <div key={index} className="bg-gray-50 p-3 rounded">
+                        <p className="text-sm font-medium text-gray-600">{evidence.type}</p>
+                        <p className="text-sm text-gray-700 mt-1">{evidence.text}</p>
+                        <p className="text-sm text-gray-500 mt-1">Supports: {evidence.supports}</p>
+                      </div>
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="analogies" className="border rounded-lg overflow-hidden bg-white">
+                <AccordionTrigger className="px-4 hover:no-underline data-[state=open]:bg-gray-50">
+                  <div className="flex items-center justify-between w-full text-gray-900">
+                    <span className="font-semibold">What analogies are being used</span>
+                    {renderCopyButton(JSON.stringify(currentAnalysis.sections.analogies, null, 2), "analogies")}
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4 pt-2">
+                  <div className="space-y-4">
+                    {Array.isArray(currentAnalysis.sections.analogies) && currentAnalysis.sections.analogies.map((analogy, index) => (
+                      <div key={index} className="bg-gray-50 p-3 rounded">
+                        <p className="text-sm text-gray-700">{analogy.comparison}</p>
+                        {analogy.implication && (
+                          <p className="text-sm text-gray-600 mt-2">{analogy.implication}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="inferences" className="border rounded-lg overflow-hidden bg-white">
+                <AccordionTrigger className="px-4 hover:no-underline data-[state=open]:bg-gray-50">
+                  <div className="flex items-center justify-between w-full text-gray-900">
+                    <span className="font-semibold">What inferences are being drawn</span>
+                    {renderCopyButton(JSON.stringify(currentAnalysis.sections.inferences, null, 2), "inferences")}
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4 pt-2">
+                  <div className="space-y-4">
+                    {Array.isArray(currentAnalysis.sections.inferences) && currentAnalysis.sections.inferences.map((inference, index) => (
+                      <div key={index} className="bg-gray-50 p-3 rounded">
+                        <p className="text-sm text-gray-700">{inference.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="relationships" className="border rounded-lg overflow-hidden bg-white">
+                <AccordionTrigger className="px-4 hover:no-underline data-[state=open]:bg-gray-50">
+                  <div className="flex items-center justify-between w-full text-gray-900">
+                    <span className="font-semibold">The relationships between ideas</span>
+                    {renderCopyButton(JSON.stringify(currentAnalysis.sections.relationships, null, 2), "relationships")}
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4 pt-2">
+                  <div className="space-y-4">
+                    {Array.isArray(currentAnalysis.sections.relationships) && currentAnalysis.sections.relationships.map((rel, index) => (
+                      <div key={index} className="bg-gray-50 p-3 rounded">
+                        <p className="text-sm font-medium text-gray-600">{rel.type}</p>
+                        <p className="text-sm text-gray-700 mt-1">{rel.description}</p>
+                        <p className="text-sm text-gray-500 mt-1">From: {rel.from} → To: {rel.to}</p>
+                      </div>
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </div>
+        )}
       </div>
     </div>
   );

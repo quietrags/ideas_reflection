@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAnalysisStore } from "@/lib/store/useAnalysisStore";
-import { useState, useEffect } from "react";
-import { ArrowRight } from "lucide-react";
+import { Analysis } from "@/types/analysis";
+import { useEffect, useState } from "react";
 
 // Helper function to generate UUID
 function generateUUID() {
@@ -13,95 +13,124 @@ function generateUUID() {
   });
 }
 
+// Helper function to ensure array type
+function ensureArray<T>(value: T | T[] | undefined | null): T[] {
+  if (Array.isArray(value)) {
+    return value;
+  }
+  return [];
+}
+
 export function TextEditor() {
-  const [input, setInput] = useState("");
+  const [text, setText] = useState("");
   const { currentAnalysis, setCurrentAnalysis, addToHistory } = useAnalysisStore();
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
+  // Reset analysis when text is cleared
   useEffect(() => {
-    if (currentAnalysis) {
-      setInput(currentAnalysis.text);
-    } else {
-      setInput("");  // Clear input when there's no current analysis
+    if (!text.trim()) {
+      setCurrentAnalysis(null);
+    }
+  }, [text, setCurrentAnalysis]);
+
+  // Update text when currentAnalysis changes
+  useEffect(() => {
+    if (currentAnalysis?.originalText) {
+      setText(currentAnalysis.originalText);
+    } else if (!currentAnalysis) {
+      // Clear text when currentAnalysis is null (e.g., after deletion)
+      setText("");
     }
   }, [currentAnalysis]);
 
   const handleAnalyze = async () => {
-    if (!input.trim() || isLoading) return;
+    if (!text.trim() || isLoading) return;
 
     setIsLoading(true);
+    setError(null);
     const analysisId = generateUUID();
 
     try {
-      const analysis = {
+      setCurrentAnalysis({ 
         id: analysisId,
         timestamp: Date.now(),
-        text: input,
-        status: "loading" as const,
-        sections: {
-          core_ideas: {
-            main_ideas: [],
-            supporting_ideas: [],
-            contextual_elements: [],
-            counterpoints: []
-          },
-          relationships: [],
-          analogies: [],
-          insights: [],
-          raw_analysis: ""
-        }
-      };
-
-      setCurrentAnalysis(analysis);
+        status: "loading" 
+      });
 
       const response = await fetch("/api/analyze", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ text: input }),
+        body: JSON.stringify({ text }),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        let errorMessage = "Failed to analyze text. Please try again.";
-        if (response.status === 429) {
-          errorMessage = data.message || "Rate limit exceeded. Please try again in a few minutes.";
-        } else if (data.message) {
-          errorMessage = data.message;
-        }
-        throw new Error(errorMessage);
+        throw new Error("Analysis failed");
       }
 
-      const updatedAnalysis = {
-        ...analysis,
-        status: "success" as const,
-        sections: data.analysis
+      const data = await response.json();
+      console.log('Raw API Response:', JSON.stringify(data, null, 2));
+
+      if (!data?.analysis?.raw_analysis) {
+        console.error('Invalid API response:', data);
+        throw new Error("Invalid API response format");
+      }
+
+      const { raw_analysis } = data.analysis;
+      const { argument_structure: args, user_guidance: guide } = raw_analysis;
+      
+      // Transform API response to our analysis structure
+      const transformedAnalysis: Analysis = {
+        broader_context: guide?.broader_context || "",
+        claims: ensureArray(args.claims).map((claim, index) => ({
+          text: `${claim.id || `C${index + 1}`}: ${claim.text}` || ""
+        })),
+        evidence_and_support: ensureArray(args.evidence_and_support).map((evidence, index) => ({
+          text: `${evidence.id || `E${index + 1}`}: ${evidence.text}` || "",
+          type: evidence.type || "Evidence",
+          supports: evidence.supports || ""
+        })),
+        analogies: ensureArray(args.analogies).map((analogy, index) => ({
+          comparison: `${analogy.id || `A${index + 1}`}: ${analogy.comparison}` || "",
+          implication: analogy.implication || ""
+        })),
+        inferences: ensureArray(args.inferences).map((inference, index) => ({
+          text: `${inference.id || `I${index + 1}`}: ${inference.text}` || ""
+        })),
+        relationships: ensureArray(args.relationships).map(rel => ({
+          type: rel.type || "",
+          from: rel.from || "",
+          to: rel.to || "",
+          description: rel.description || ""
+        }))
       };
 
-      setCurrentAnalysis(updatedAnalysis);
-      addToHistory(updatedAnalysis);
+      console.log('Transformed Analysis:', JSON.stringify(transformedAnalysis, null, 2));
+
+      const analysisState = {
+        id: analysisId,
+        timestamp: Date.now(),
+        status: "success" as const,
+        sections: transformedAnalysis,
+        raw_analysis,
+        originalText: text
+      };
+
+      console.log('Final Analysis State:', JSON.stringify(analysisState, null, 2));
+
+      setCurrentAnalysis(analysisState);
+      addToHistory(analysisState);
     } catch (error) {
-      console.error("Analysis error:", error);
+      console.error('Analysis error:', error);
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+      setError(errorMessage);
       setCurrentAnalysis({
         id: analysisId,
         timestamp: Date.now(),
-        text: input,
-        status: "error" as const,
-        error: error instanceof Error ? error.message : "Failed to analyze text. Please try again.",
-        sections: {
-          core_ideas: {
-            main_ideas: [],
-            supporting_ideas: [],
-            contextual_elements: [],
-            counterpoints: []
-          },
-          relationships: [],
-          analogies: [],
-          insights: [],
-          raw_analysis: ""
-        }
+        status: "error",
+        error: errorMessage
       });
     } finally {
       setIsLoading(false);
@@ -109,27 +138,40 @@ export function TextEditor() {
   };
 
   return (
-    <div className="flex h-full w-full flex-col gap-4">
-      <div>
-        <h2 className="text-xl font-semibold text-gray-900">Complex text here</h2>
-        <p className="text-sm text-gray-500">Enter your text below and click analyze to get insights.</p>
+    <div className="h-full flex flex-col">
+      <div className="px-4 py-3 border-b border-gray-200">
+        <h2 className="text-lg font-semibold text-gray-900">Text Editor</h2>
+        <p className="text-sm text-gray-500">Enter your text to analyze ideas and relationships</p>
       </div>
-      <div className="relative flex-1">
+      <div className="flex-1 p-4">
         <Textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Enter your text here..."
-          className="absolute inset-0 resize-none rounded-lg border-gray-200 bg-white p-4 text-base text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:ring-gray-900"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Enter your text here to analyze..."
+          className="h-full min-h-[300px] resize-none bg-white text-gray-900 p-4 rounded-lg border-gray-200 focus:border-gray-300 focus:ring-gray-300"
         />
       </div>
-      <Button
-        onClick={handleAnalyze}
-        disabled={!input.trim() || isLoading}
-        className="relative overflow-hidden rounded-lg bg-black px-4 py-2 text-base font-medium text-white transition-all hover:bg-gray-900 disabled:bg-gray-200 disabled:text-gray-400"
-      >
-        <ArrowRight className="mr-2 h-4 w-4" />
-        {isLoading ? "Analyzing..." : "Analyze"}
-      </Button>
+      <div className="px-4 py-3 border-t border-gray-200">
+        {error && (
+          <div className="text-red-500 text-sm mb-2">{error}</div>
+        )}
+        <div className="flex justify-end">
+          <Button
+            onClick={handleAnalyze}
+            disabled={isLoading || !text.trim()}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg flex items-center gap-2 min-w-[120px] justify-center"
+          >
+            {isLoading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Analyzing...
+              </>
+            ) : (
+              <>Analyze</>
+            )}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

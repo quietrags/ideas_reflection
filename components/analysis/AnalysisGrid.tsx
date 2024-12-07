@@ -1,114 +1,107 @@
 import { useAnalysisStore } from "@/lib/store/useAnalysisStore";
-import { ThumbsUp, Trash2, Clock, Check } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { formatDistanceToNow } from "date-fns";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Trash2, ExternalLink } from "lucide-react";
 
 export function AnalysisGrid() {
-  const { 
-    analysisHistory, 
-    removeFromHistory, 
-    selectedAnalysis,
-    setSelectedAnalysis,
-    setCurrentAnalysis 
-  } = useAnalysisStore();
+  const { analysisHistory, removeFromHistory, setCurrentAnalysis } = useAnalysisStore();
 
-  const getTimeAgo = (timestamp: number) => {
-    try {
-      return formatDistanceToNow(timestamp, { addSuffix: true });
-    } catch (error) {
-      return "some time ago";
-    }
-  };
-
-  const handleAnalysisSelect = (analysis: any) => {
-    console.log("Selected Analysis:", analysis);
-    setSelectedAnalysis(analysis);
-    setCurrentAnalysis(analysis);  
-  };
-
-  const handleDelete = (e: React.MouseEvent, analysisId: string) => {
-    e.stopPropagation();
-    removeFromHistory(analysisId);
-    
-    // If this was the last item, explicitly clear both states
-    if (analysisHistory.length <= 1) {
-      setSelectedAnalysis(null);
-      setCurrentAnalysis(null);
-    }
-  };
-
-  if (analysisHistory.length === 0) {
-    return null;
+  if (!analysisHistory || analysisHistory.length === 0) {
+    return (
+      <div className="rounded-lg border border-dashed border-gray-300 bg-white p-8">
+        <div className="text-center">
+          <svg
+            className="mx-auto h-12 w-12 text-gray-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+            />
+          </svg>
+          <h3 className="mt-2 text-sm font-semibold text-gray-900">No analysis history</h3>
+          <p className="mt-1 text-sm text-gray-500">Your past analyses will appear here.</p>
+        </div>
+      </div>
+    );
   }
 
+  const handleDelete = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    removeFromHistory(id);
+  };
+
+  const handleLoad = (analysis: any) => {
+    setCurrentAnalysis(analysis);
+  };
+
   return (
-    <div className="mt-8">
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Past Analyses</h2>
-        <p className="text-sm text-gray-500">Your previous idea analyses</p>
-      </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {analysisHistory.map((analysis) => {
-          const isSelected = selectedAnalysis?.id === analysis.id;
-          
-          return (
-            <div
-              key={analysis.id}
-              onClick={() => handleAnalysisSelect(analysis)}
-              className={cn(
-                "group relative cursor-pointer rounded-xl border bg-white p-4 shadow-sm transition-all",
-                isSelected 
-                  ? "border-blue-500 ring-2 ring-blue-500/20" 
-                  : "border-gray-200 hover:shadow-md"
-              )}
-            >
-              <div className="mb-2 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <Clock className="h-4 w-4" />
-                  <span>{getTimeAgo(analysis.timestamp)}</span>
-                  {analysis.lastModified && (
-                    <span className="text-xs text-gray-400">
-                      (edited {getTimeAgo(analysis.lastModified)})
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  {isSelected && (
-                    <Check className="h-4 w-4 text-blue-500" />
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 rounded-full p-0 text-gray-400 hover:text-green-500"
-                  >
-                    <ThumbsUp className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 rounded-full p-0 text-gray-400 hover:text-red-500"
-                    onClick={(e) => handleDelete(e, analysis.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {analysisHistory.map((analysis) => (
+        <Card 
+          key={analysis.id} 
+          className="hover:shadow-md transition-shadow cursor-pointer"
+          onClick={() => handleLoad(analysis)}
+        >
+          <CardContent className="p-4">
+            <div className="flex justify-between items-start mb-3">
+              <div className="flex-1">
+                <p className="text-sm text-gray-500">
+                  {formatDistanceToNow(analysis.timestamp, { addSuffix: true })}
+                </p>
               </div>
-              <div className="line-clamp-3 text-sm text-gray-700">
-                {analysis.text}
-              </div>
-              <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
-                <span>
-                  {Object.keys(analysis.sections || {}).length} sections analyzed
+              <div className="flex items-center gap-2">
+                <span
+                  className={`px-2 py-1 text-xs rounded-full ${
+                    analysis.status === "success"
+                      ? "bg-green-100 text-green-800"
+                      : analysis.status === "error"
+                      ? "bg-red-100 text-red-800"
+                      : "bg-gray-100 text-gray-800"
+                  }`}
+                >
+                  {analysis.status}
                 </span>
-                {isSelected && (
-                  <span className="text-blue-500">Currently viewing</span>
-                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-gray-500 hover:text-red-600"
+                  onClick={(e) => handleDelete(e, analysis.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </div>
             </div>
-          );
-        })}
-      </div>
+            <div className="space-y-2">
+              <p className="text-sm text-gray-900 line-clamp-3">
+                {analysis.originalText}
+              </p>
+              {analysis.sections?.claims && analysis.sections.claims.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {analysis.sections.claims.slice(0, 2).map((claim, index) => (
+                    <span
+                      key={index}
+                      className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700"
+                    >
+                      {claim.text.length > 50 ? `${claim.text.slice(0, 50)}...` : claim.text}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="mt-3 flex items-center text-sm text-blue-600">
+              <ExternalLink className="h-4 w-4 mr-1" />
+              Click to load analysis
+            </div>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 }

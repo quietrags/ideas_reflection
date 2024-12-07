@@ -128,55 +128,128 @@ async def analyze_text(input_data: TextInput, background_tasks: BackgroundTasks)
             # Parse the JSON response
             parsed_response = json.loads(response_text.strip())
             
-            # Structure the response for frontend accordion
-            structured_response = {
-                "core_ideas": {
-                    "main_ideas": [{"id": item["ID"], "content": item["Description"]} 
-                                 for item in parsed_response["CoreIdeas"]["MainIdeas"]],
-                    "supporting_ideas": [{"main_idea_id": item["MainIdeaID"], "content": item["Description"]} 
-                                      for item in parsed_response["CoreIdeas"]["SupportingIdeas"]],
-                    "contextual_elements": [{"id": item["ID"], "content": item["Description"]} 
-                                         for item in parsed_response["CoreIdeas"]["ContextualElements"]],
-                    "counterpoints": [{"main_idea_id": item["MainIdeaID"], "content": item["Description"]} 
-                                   for item in parsed_response["CoreIdeas"]["Counterpoints"]],
-                    "relationships_between_main_ideas": [
-                        {
-                            "idea1": rel["MainIdea1"],
-                            "idea2": rel["MainIdea2"],
-                            "type": rel["Type"],
-                            "description": rel["Description"]
-                        }
-                        for rel in parsed_response["RelationshipsBetweenMainIdeas"]
-                    ]
-                },
-                "relationships": {
-                    "items": [
-                        {
-                            "type": rel["Type"],
-                            "description": rel["Description"]
-                        }
-                        for rel in parsed_response["Relationships"]
-                    ]
-                },
-                "analogies": {
-                    "items": [
-                        {
-                            "id": analogy["AnalogyID"],
-                            "comparison": analogy["Comparison"],
-                            "support": analogy["SupportForMainIdea"],
-                            "implications": analogy["ImplicationsOrRisks"]
-                        }
-                        for analogy in parsed_response["Analogies"]
-                    ]
-                },
-                "insights": {
-                    "evolution": parsed_response["UpdatedInsights"]["EvolutionOfIdeas"],
-                    "key_takeaways": parsed_response["UpdatedInsights"]["KeyTakeaways"],
-                    "tradeoffs": parsed_response["UpdatedInsights"]["TradeoffsOrRisks"],
-                    "broader_themes": parsed_response["UpdatedInsights"]["BroaderThemes"]
+            # Check if this is the new format (has "argument_structure")
+            if "argument_structure" in parsed_response:
+                # Transform new format to a structure compatible with frontend
+                structured_response = {
+                    "version": "v2",
+                    "core_ideas": {
+                        "main_ideas": [
+                            {
+                                "id": claim["id"],
+                                "content": claim["text"]
+                            }
+                            for claim in parsed_response["argument_structure"]["claims"]
+                        ],
+                        "supporting_ideas": [
+                            {
+                                "main_idea_id": evidence["supports"],
+                                "content": evidence["text"],
+                                "type": evidence["type"]
+                            }
+                            for evidence in parsed_response["argument_structure"]["evidence_and_support"]
+                        ],
+                        "contextual_elements": [
+                            {
+                                "id": f"CTX{idx+1}",
+                                "content": inference["text"]
+                            }
+                            for idx, inference in enumerate(parsed_response["argument_structure"]["inferences"])
+                        ],
+                        "relationships_between_main_ideas": [
+                            {
+                                "type": rel["type"],
+                                "idea1": rel["from"],
+                                "idea2": rel["to"],
+                                "description": rel["description"]
+                            }
+                            for rel in parsed_response["argument_structure"]["relationships"]
+                            if rel["from"].startswith("C") and rel["to"].startswith("C")
+                        ]
+                    },
+                    "relationships": {
+                        "items": [
+                            {
+                                "type": rel["type"],
+                                "description": rel["description"]
+                            }
+                            for rel in parsed_response["argument_structure"]["relationships"]
+                            if not (rel["from"].startswith("C") and rel["to"].startswith("C"))
+                        ]
+                    },
+                    "analogies": {
+                        "items": [
+                            {
+                                "id": analogy["id"],
+                                "comparison": analogy["comparison"],
+                                "support": "",  # New format doesn't have this
+                                "implications": analogy["implication"]
+                            }
+                            for analogy in parsed_response["argument_structure"]["analogies"]
+                        ]
+                    },
+                    "insights": {
+                        "evolution": parsed_response["user_guidance"]["broader_context"],
+                        "key_takeaways": "\n".join(parsed_response["user_guidance"]["how_to_read"]),
+                        "tradeoffs": "",  # New format doesn't have direct tradeoffs
+                        "broader_themes": parsed_response["user_guidance"]["broader_context"]
+                    },
+                    # Store the original format for future use if needed
+                    "raw_analysis": parsed_response
                 }
-            }
-
+            else:
+                # Handle old format (pre-existing logic)
+                structured_response = {
+                    "version": "v1",
+                    "core_ideas": {
+                        "main_ideas": [{"id": item["ID"], "content": item["Description"]} 
+                                     for item in parsed_response["CoreIdeas"]["MainIdeas"]],
+                        "supporting_ideas": [{"main_idea_id": item["MainIdeaID"], "content": item["Description"]} 
+                                          for item in parsed_response["CoreIdeas"]["SupportingIdeas"]],
+                        "contextual_elements": [{"id": item["ID"], "content": item["Description"]} 
+                                             for item in parsed_response["CoreIdeas"]["ContextualElements"]],
+                        "counterpoints": [{"main_idea_id": item["MainIdeaID"], "content": item["Description"]} 
+                                       for item in parsed_response["CoreIdeas"]["Counterpoints"]],
+                        "relationships_between_main_ideas": [
+                            {
+                                "idea1": rel["MainIdea1"],
+                                "idea2": rel["MainIdea2"],
+                                "type": rel["Type"],
+                                "description": rel["Description"]
+                            }
+                            for rel in parsed_response["RelationshipsBetweenMainIdeas"]
+                        ]
+                    },
+                    "relationships": {
+                        "items": [
+                            {
+                                "type": rel["Type"],
+                                "description": rel["Description"]
+                            }
+                            for rel in parsed_response["Relationships"]
+                        ]
+                    },
+                    "analogies": {
+                        "items": [
+                            {
+                                "id": analogy["AnalogyID"],
+                                "comparison": analogy["Comparison"],
+                                "support": analogy["SupportForMainIdea"],
+                                "implications": analogy["ImplicationsOrRisks"]
+                            }
+                            for analogy in parsed_response["Analogies"]
+                        ]
+                    },
+                    "insights": {
+                        "evolution": parsed_response["UpdatedInsights"]["EvolutionOfIdeas"],
+                        "key_takeaways": parsed_response["UpdatedInsights"]["KeyTakeaways"],
+                        "tradeoffs": parsed_response["UpdatedInsights"]["TradeoffsOrRisks"],
+                        "broader_themes": parsed_response["UpdatedInsights"]["BroaderThemes"]
+                    },
+                    # Store the original format for future use if needed
+                    "raw_analysis": parsed_response
+                }
+            
             print("\n================================================================================")
             print("LLM RESPONSE:")
             print("================================================================================")

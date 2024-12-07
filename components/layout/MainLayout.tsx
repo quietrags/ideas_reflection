@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import Split from 'react-split';
 import { TextEditor } from "../editor/TextEditor";
-import { AnalysisPanel } from "../analysis/AnalysisPanel";
+import AnalysisPanel from "../analysis/AnalysisPanel";
 import { AnalysisGrid } from "../analysis/AnalysisGrid";
 
 interface MainLayoutProps {
@@ -11,30 +11,35 @@ interface MainLayoutProps {
 
 export function MainLayout({ leftPanel, rightPanel }: MainLayoutProps) {
   return (
-    <main className="flex min-h-screen flex-col bg-white">
-      <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 p-4">
+    <main className="min-h-screen bg-gray-50">
+      <div className="mx-auto w-full max-w-7xl p-4">
         <Split
-          className="flex h-[calc(100vh-20rem)] gap-4"
+          className="flex h-[calc(100vh-8rem)]"
           sizes={[50, 50]}
           minSize={400}
-          style={{
-            display: "flex",
-            gap: "1rem",
-          }}
           gutterStyle={() => ({
             width: "8px",
+            backgroundColor: "#e5e7eb",
+            margin: "0 -4px",
             cursor: "col-resize",
-            backgroundColor: "#f1f5f9"
           })}
         >
-          <div className="flex min-w-[400px] flex-1 overflow-hidden rounded-xl border border-gray-200 bg-gray-50/50 p-6 shadow-sm">
+          <div className="flex flex-col min-w-[400px] rounded-lg bg-white shadow-sm overflow-hidden">
             {leftPanel}
           </div>
-          <div className="flex min-w-[400px] flex-1 overflow-hidden rounded-xl border border-gray-200 bg-gray-50/50 p-6 shadow-sm">
+          <div className="flex flex-col min-w-[400px] rounded-lg bg-white shadow-sm overflow-hidden">
             {rightPanel}
           </div>
         </Split>
-        <AnalysisGrid />
+        <div className="mt-4 rounded-lg bg-white shadow-sm p-4">
+          <div className="border-b border-gray-200 pb-3">
+            <h2 className="text-lg font-semibold text-gray-900">Analysis History</h2>
+            <p className="text-sm text-gray-500">View and manage your previous analyses</p>
+          </div>
+          <div className="mt-4">
+            <AnalysisGrid />
+          </div>
+        </div>
       </div>
     </main>
   );
